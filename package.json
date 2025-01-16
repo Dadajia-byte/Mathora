@@ -11,9 +11,12 @@
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.1",
+    "axios": "^1.7.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "crypto-js": "^4.2.0",
     "lucide-react": "^0.471.1",
+    "node-rsa": "^1.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.1.1",
@@ -22,7 +25,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
+    "@types/crypto-js": "^4.2.2",
     "@types/node": "^22.10.6",
+    "@types/node-rsa": "^1.1.4",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react-swc": "^3.5.0",
