@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios"
-import { AxiosRequestConfig, AxiosServiceOptions } from "@/apis/request/type"
+import { AxiosRequestConfig, AxiosServiceOptions } from "@/services/request/type"
 import LRUCache from "@/utils/lru"
 import secure from "@/utils/secure";
 
@@ -18,7 +18,7 @@ class AxiosService {
 
     // 初始化最大接口数量
     this.activeRequestsCount = 0;
-    this.maxRequestsCount = options.maxRequestsCount || 5;
+    this.maxRequestsCount = options.maxRequestsCount || 10;
 
     // 初始化实例
     this.instance = axios.create({
@@ -38,7 +38,7 @@ class AxiosService {
     // 初始化请求拦截器
     this.instance.interceptors.request.use(
       (config: AxiosRequestConfig) => {
-          // 同时请求过多拦截 
+        // 同时请求过多拦截 
         if (this.activeRequestsCount >= this.maxRequestsCount) {
           return Promise.reject(`同时请求过多请稍后再试`)
         }

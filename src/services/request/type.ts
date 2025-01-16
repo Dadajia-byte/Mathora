@@ -6,13 +6,10 @@ export interface EncryptionOptions {
   encryptFields?: string[]; // 需要加密的字段
 }
 
-
-
 export interface AxiosRequestConfig extends OriginalAxiosRequestConfig {
   cache?: boolean;
   encryption?: EncryptionOptions;
 }
-
 
 export interface AxiosServiceOptions {
   baseURL?: string;
