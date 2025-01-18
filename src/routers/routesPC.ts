@@ -5,5 +5,5 @@ const About = lazy(() => import('@/pages/About'));
 
 export const routesPC = [
   { path: '/', component: Home, namespaces: ['common'] },
-  { path: '/about', component: About, namespaces: ['common'] },
+  { path: '/about', component: About, namespaces: ['test'] },
 ];

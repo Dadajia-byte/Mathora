@@ -10,10 +10,13 @@ i18n
   .init({
     fallbackLng: 'zh-CN',
     supportedLngs: ['en-US', 'zh-CN'],
-    ns: ['common', 'test'],
     defaultNS: 'common',
+    ns: ['common'],
     interpolation: {
       escapeValue: false,
+    },
+    react: {
+      useSuspense: true,  // 启用 Suspense
     },
     backend: {
       loadPath: '/src/i18n/locales/{{lng}}/{{ns}}.json',
