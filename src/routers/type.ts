@@ -4,7 +4,7 @@ export interface routeItem {
   path: string;
   component: ComponentType<any> | LazyExoticComponent<ComponentType<any>>;
   children?: routeItem[];
-  namespaces?: string[];
+  namespaces?: string[] | string;
 }
 
 export type routerConfig = routeItem[];
