@@ -1,3 +1,3 @@
-const enum loginEnum {
+export const enum loginEnum {
   
 }
