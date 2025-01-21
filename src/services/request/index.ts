@@ -1,12 +1,28 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios"
-import { AxiosRequestConfig, AxiosServiceOptions, TokenStorage } from "@/services/request/type"
+import { AxiosRequestConfig, AxiosServiceOptions, TokenStorage, ErrorType, AppError } from "@/services/request/type"
 import LRUCache from "@/utils/lru"
 import secure from "@/utils/secure";
+import { createError } from "./errorHandler";
+
 
 // 默认基于 localStorage 的对双token存/取实现
 const localStorageTokenStorage: TokenStorage = {
-  getAccessToken: () => localStorage.getItem("accessToken"),
-  getRefreshToken: () => localStorage.getItem("refreshToken"),
+  getAccessToken: () => {
+      let accessToken = localStorage.getItem("accessToken");
+      if (accessToken && !localStorageTokenStorage.checkToken(accessToken)) { // 如果有还要判断是否过期
+        localStorage.removeItem("accessToken");
+        accessToken = null;
+      }
+      return accessToken;
+    },
+  getRefreshToken: () => {
+    let refreshToken = localStorage.getItem("refreshToken");
+    if (refreshToken && !localStorageTokenStorage.checkToken(refreshToken)) { // 如果有还要判断是否过期
+      localStorage.removeItem("refreshToken");
+      refreshToken = null;
+    }
+    return refreshToken;
+  },
   setTokens: (accessToken, refreshToken) => {
     localStorage.setItem("accessToken", accessToken);
     if (refreshToken) {
@@ -16,20 +32,22 @@ const localStorageTokenStorage: TokenStorage = {
   clearTokens: () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+  },
+  checkToken: (token) => { // 检查token是否过期
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(base64));
+    return Date.now() < payload.exp * 1000;
   }
 };
 
 class AxiosService {
-  pendingRequests: Map<string, Function>;
+  pendingRequests: Map<string, AbortController>;
   activeRequestsCount: number;
   maxRequestsCount: number;
   instance: AxiosInstance;
   cache: LRUCache;
   #aseKey: string;
-
-  // 双token相关
-  private isRefreshing = false;
-  private refreshSubscribers: ((token: string) => void)[] = [];
   private tokenStorage: TokenStorage;
 
   constructor(options:AxiosServiceOptions) {
@@ -60,38 +78,62 @@ class AxiosService {
 
     // 初始化请求拦截器
     this.instance.interceptors.request.use(
-      (config: AxiosRequestConfig) => {
+      async (config: AxiosRequestConfig) => {
         // 同时请求过多拦截 
         if (this.activeRequestsCount >= this.maxRequestsCount) {
-          return Promise.reject(`同时请求过多请稍后再试`)
+          return Promise.reject(
+            createError('同时请求过多', ErrorType.CONCURRENT, { code: 429 })
+          );
         }
 
         this.removePendingRequest(config); // 移除重复请求
-        this.addPendingRequest(config); // 添加请求至pengding队列
 
         // 缓存判断
-        if (config.cache && config.url && this.cache.get(config.url)) {
-          return Promise.resolve(this.cache.get(config.url))
+        const cacheKey = this.generateRequestKey(config);
+        if (config.cache && this.cache.has(cacheKey)) {
+          const controller = new AbortController();
+          controller.abort('请求取消，命中缓存'); // 取消请求
+          config.signal = controller.signal; // 绑定 AbortController
+          const cachedResponse = this.cache.get(cacheKey);
+          return Promise.resolve({
+            ...cachedResponse,
+            config,
+            __fromCache: true // 标记来自缓存
+          })
         }
+
+        this.addPendingRequest(config); // 添加请求至pengding队列
 
         // 加密处理
         if (config.encryption) {
-          // 前端加密其实没什么用，而且耗费性能，所以一般来说还是不加密
+          // 前端加密没什么用，而且耗费性能，所以一般来说还是不加密
           config = this.encryptRequest(config);
         }
 
         // 双 Token 判断逻辑
-        const accessToken = this.tokenStorage.getAccessToken();
+        const accessToken = this.tokenStorage.getAccessToken(); // 自己设置的token存储，拿到了说明绝对没过期
         const refreshToken = this.tokenStorage.getRefreshToken();
 
-        // 添加 Authorization 头
-        if (accessToken) {
-          config.headers.Authorization = `Bearer ${accessToken}`;
-          return this.verifyAndRefreshToken(config);
-        }
-
-        if (refreshToken) {
-          return this.handleTokenRefresh(config);
+        // 
+        if(refreshToken) {
+          if (accessToken) { // 有accesstoken就直接放行
+            config.headers.Authorization = `Bearer ${accessToken}`;
+          } else { // 没有accesstoken但是有refreshtoken就去刷新accesstoken
+            try {
+              const newAccessToken = await this.refreshToken(refreshToken);
+              config.headers.Authorization = `Bearer ${newAccessToken}`;
+            } catch (error) {
+              this.tokenStorage.clearTokens();
+              return Promise.reject(
+                createError('未找到刷新令牌', ErrorType.AUTH, { code: 401 })
+              );
+            }
+          }
+        } else { // refreshtoken都没有或者过期的话滚去登录
+          this.tokenStorage.clearTokens();
+          return Promise.reject(
+            createError('未找到刷新令牌', ErrorType.AUTH, { code: 401 })
+          );
         }
 
         this.activeRequestsCount++;
@@ -104,27 +146,64 @@ class AxiosService {
     this.instance.interceptors.response.use(
       (response: AxiosResponse) => {
         this.removePendingRequest(response.config);
-        // 缓存处理
-        if ((response.config as AxiosRequestConfig).cache) { // 在接口中增加cache字段主动开启缓存
-          this.cache.put(response.config.url!, response.data);
+        // 处理缓存标记
+        if ((response.config as AxiosRequestConfig).cache) {
+          const cacheKey = this.generateRequestKey(response.config);
+          this.cache.set(cacheKey, response);
         }
         this.activeRequestsCount--;
+        // 业务状态码检查（假设成功码为 200）
+        if (response.data.code !== 200) {
+          throw createError(
+            response.data.message,
+            ErrorType.BUSINESS,
+            { code: response.data.code }
+          );
+        }
         return response;
       },
       error => {
+        // 统一转换错误
+        let processedError: AppError;
+        
         this.removePendingRequest(error.config || {});
         this.activeRequestsCount--;
-        const originalRequest = error.config;
-        
-        // Token 过期处理（401 状态码）
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          return this.handleAuthError(originalRequest);
+        if (error.response) {
+          // HTTP 状态码处理
+          switch (error.response.status) {
+            case 401:
+              processedError = createError('登录过期', ErrorType.AUTH, { code: 401 });
+              break;
+            case 429:
+              processedError = createError('请求过于频繁', ErrorType.CONCURRENT);
+              break;
+            default:
+              processedError = createError(
+                `服务器错误 (${error.response.status})`,
+                ErrorType.NETWORK
+              );
+          }
+        } else if (error.request) {
+          processedError = createError('网络连接失败', ErrorType.NETWORK);
+        } else {
+          processedError = createError('未知错误', ErrorType.UNKNOWN);
         }
-        return Promise.reject(error)
+        return Promise.reject(processedError);
       }
     )
   }
 
+  // 生成稳定的请求key
+  private generateRequestKey(config: AxiosRequestConfig): string {
+    const stableStringify = (obj: any): string => {
+      if (obj === null || obj === undefined) return 'null';
+      if (typeof obj !== 'object') return JSON.stringify(obj);
+      if (Array.isArray(obj)) return `[${obj.map(stableStringify).join(',')}]`;
+      const keys = Object.keys(obj).sort();
+      return `{${keys.map(k => `"${k}":${stableStringify(obj[k])}`).join(',')}}`;
+    };
+    return `${config.url}-${stableStringify(config.params)}-${stableStringify(config.data)}`;
+  }
   // 加密请求数据
   encryptRequest(config: AxiosRequestConfig): AxiosRequestConfig {
     const { method, encryptWholeMessage, encryptFields } = config.encryption!;
@@ -166,125 +245,33 @@ class AxiosService {
 
   // pending请求队列，避免重复请求
   addPendingRequest(config:AxiosRequestConfig) {
-    const key = `${config.url}-${JSON.stringify(config.params || {})}-${JSON.stringify(config.data || {})}`;
+    const key = this.generateRequestKey(config);
     if (this.pendingRequests.has(key)) {
-      config.cancelToken = new axios.CancelToken(cancel => cancel(`请求取消`))
-    } else {
-      config.cancelToken = new axios.CancelToken(cancel => {
-        this.pendingRequests.set(key, cancel)
-      });
-    }
+      const controller = this.pendingRequests.get(key);
+      controller?.abort('请求取消，重复亲切感');
+    } 
+    const controller = new AbortController();
+    config.signal = controller.signal;
+    this.pendingRequests.set(key, controller);
   }
   // 移除请求队列
   removePendingRequest(config:AxiosRequestConfig) {
-    const key = `${config.url}-${JSON.stringify(config.params || {})}-${JSON.stringify(config.data || {})}`;
+    const key = this.generateRequestKey(config);
     if (this.pendingRequests.has(key)) {
-      const cancel = this.pendingRequests.get(key);
-      if (cancel) {
-        cancel(key);
-      }
+      const controller = this.pendingRequests.get(key);
+      controller?.abort('请求取消');
       this.pendingRequests.delete(key);
     }
   }
 
-  // 验证并刷新 Token
-  private async verifyAndRefreshToken(config: AxiosRequestConfig) {
-    try {
-      // 简单验证 Token 是否即将过期（生产环境应使用 JWT 解码验证）
-      if (this.isTokenExpired()) {
-        return this.handleTokenRefresh(config);
-      }
-      return config;
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  }
-
-  // 处理 Token 刷新
-  private async handleTokenRefresh(config: AxiosRequestConfig) {
-    if (!this.isRefreshing) {
-      this.isRefreshing = true;
-      try {
-        const newAccessToken = await this.refreshToken();
-        this.tokenStorage.setTokens(newAccessToken);
-        
-        // 执行等待中的请求
-        this.refreshSubscribers.forEach(callback => callback(newAccessToken));
-        this.refreshSubscribers = [];
-        
-        // 重试原始请求
-        config.headers.Authorization = `Bearer ${newAccessToken}`;
-        return config;
-      } catch (error) { // 刷新 Token 失败，跳转登录页
-
-        // 这里后期可能写一个auth高阶组件，用于处理登录过期跳转
-
-        this.tokenStorage.clearTokens();
-        window.location.href = '/login';
-        
-        
-        return Promise.reject(error);
-      } finally {
-        this.isRefreshing = false;
-      }
-    }
-
-    // 如果已经在刷新中，返回一个等待 Promise
-    return new Promise((resolve) => {
-      this.refreshSubscribers.push((newToken) => {
-        config.headers.Authorization = `Bearer ${newToken}`;
-        resolve(config);
-      });
-    });
-  }
-
-  // 处理认证错误
-  private async handleAuthError(originalRequest: AxiosRequestConfig) {
-    originalRequest._retry = true;
-    
-    try {
-      const newAccessToken = await this.refreshToken();
-      this.tokenStorage.setTokens(newAccessToken);
-      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-      return this.instance(originalRequest);
-    } catch (error) {
-      // 这里后期可能写一个auth高阶组件，用于处理登录过期跳转
-
-        this.tokenStorage.clearTokens();
-        window.location.href = '/login';
-        
-        
-        return Promise.reject(error);
-    }
-  }
-
   // 修改后的 refreshToken 方法
-  private async refreshToken() {
-    const refreshToken = this.tokenStorage.getRefreshToken();
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
-
+  private async refreshToken(refreshToken:string): Promise<string> {
     // token是否前端加密也是一个值得考量的事，暂时不做
-    const response = await axios.post(
-      `${import.meta.env.VITE_API_URL}/auth/refresh-token`,
-      { refreshToken },
-    );
-
-    if (!response.data.accessToken) {
-      throw new Error('Invalid refresh token response');
-    }
-
+    const response = await this.instance.post('/auth/refresh-token', { refreshToken });
+    this.tokenStorage.setTokens(response.data.accessToken, refreshToken);
     return response.data.accessToken;
   }
 
-  // 新增方法：简单 Token 过期检查（生产环境需要更完整实现）
-  private isTokenExpired(): boolean {
-    // 这里可以添加实际的 JWT 过期时间检查逻辑
-    // 示例：检查 localStorage 中的过期时间戳
-    const expiryTime = localStorage.getItem('tokenExpiry');
-    return expiryTime ? Date.now() > parseInt(expiryTime) : false;
-  }
 }
 
 const options = {

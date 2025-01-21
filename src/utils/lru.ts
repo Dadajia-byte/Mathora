@@ -31,7 +31,7 @@ class LRUCache {
     return parsedItem.value;
   }
 
-  put(key: string, value: any) {
+  set(key: string, value: any) {
     if (this.#map.has(key)) {
       this.#map.delete(key);
     }
@@ -45,6 +45,22 @@ class LRUCache {
         this.#map.delete(firstKey);
       }
     }
+  }
+  has(key: string): boolean {
+    const item = this.#map.get(key);
+    if (!item) {
+      return false;
+    }
+    const parsedItem = JSON.parse(item);
+    if (Date.now() - parsedItem.timestamp > this.#maxAge) {
+      this.#map.delete(key);
+      return false;
+    }
+    return true;
+  }
+
+  clear() {
+    this.#map.clear();
   }
 }
 

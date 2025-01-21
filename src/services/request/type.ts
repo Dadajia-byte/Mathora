@@ -27,4 +27,24 @@ export interface TokenStorage {
   getRefreshToken: () => string | null;
   setTokens: (accessToken: string, refreshToken?: string) => void;
   clearTokens: () => void;
+  checkToken: (token:string) => boolean;
+}
+
+
+// 错误类型分类
+export enum ErrorType {
+  NETWORK = 'network',      // 网络错误
+  CONCURRENT = 'concurrent',// 请求过多
+  AUTH = 'auth',            // 认证错误
+  BUSINESS = 'business',    // 业务逻辑错误
+  CACHE = 'cache',          // 缓存错误（可选）
+  UNKNOWN = 'unknown'       // 未知错误
+}
+
+// 标准错误结构
+export interface AppError extends Error {
+  type: ErrorType;         // 错误类型
+  code?: number;           // 错误码（可选）
+  data?: any;              // 附加数据（可选）
+  isCache?: boolean;       // 是否来自缓存（针对缓存场景）
 }
