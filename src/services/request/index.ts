@@ -7,22 +7,8 @@ import { createError } from "./errorHandler";
 
 // 默认基于 localStorage 的对双token存/取实现
 const localStorageTokenStorage: TokenStorage = {
-  getAccessToken: () => {
-      let accessToken = localStorage.getItem("accessToken");
-      if (accessToken && !localStorageTokenStorage.checkToken(accessToken)) { // 如果有还要判断是否过期
-        localStorage.removeItem("accessToken");
-        accessToken = null;
-      }
-      return accessToken;
-    },
-  getRefreshToken: () => {
-    let refreshToken = localStorage.getItem("refreshToken");
-    if (refreshToken && !localStorageTokenStorage.checkToken(refreshToken)) { // 如果有还要判断是否过期
-      localStorage.removeItem("refreshToken");
-      refreshToken = null;
-    }
-    return refreshToken;
-  },
+  getAccessToken: () => localStorage.getItem("accessToken"),
+  getRefreshToken: () => localStorage.getItem("refreshToken"),
   setTokens: (accessToken, refreshToken) => {
     localStorage.setItem("accessToken", accessToken);
     if (refreshToken) {
@@ -33,12 +19,6 @@ const localStorageTokenStorage: TokenStorage = {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
   },
-  checkToken: (token) => { // 检查token是否过期
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const payload = JSON.parse(atob(base64));
-    return Date.now() < payload.exp * 1000;
-  }
 };
 
 class AxiosService {
@@ -95,11 +75,7 @@ class AxiosService {
           controller.abort('请求取消，命中缓存'); // 取消请求
           config.signal = controller.signal; // 绑定 AbortController
           const cachedResponse = this.cache.get(cacheKey);
-          return Promise.resolve({
-            ...cachedResponse,
-            config,
-            __fromCache: true // 标记来自缓存
-          })
+          return Promise.resolve(cachedResponse);
         }
 
         this.addPendingRequest(config); // 添加请求至pengding队列
@@ -267,7 +243,12 @@ class AxiosService {
   // 修改后的 refreshToken 方法
   private async refreshToken(refreshToken:string): Promise<string> {
     // token是否前端加密也是一个值得考量的事，暂时不做
-    const response = await this.instance.post('/auth/refresh-token', { refreshToken });
+    const response = await axios.post('/auth/refresh-token', { refreshToken });
+    if (response.data.code === 401) {
+      return Promise.reject(
+        createError('未找到刷新令牌', ErrorType.AUTH, { code: 401 })
+      )
+    }
     this.tokenStorage.setTokens(response.data.accessToken, refreshToken);
     return response.data.accessToken;
   }

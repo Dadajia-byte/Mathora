@@ -27,7 +27,6 @@ export interface TokenStorage {
   getRefreshToken: () => string | null;
   setTokens: (accessToken: string, refreshToken?: string) => void;
   clearTokens: () => void;
-  checkToken: (token:string) => boolean;
 }
 
 
