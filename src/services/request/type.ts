@@ -32,12 +32,14 @@ export interface TokenStorage {
 
 // 错误类型分类
 export enum ErrorType {
-  NETWORK = 'network',      // 网络错误
-  CONCURRENT = 'concurrent',// 请求过多
-  AUTH = 'auth',            // 认证错误
-  BUSINESS = 'business',    // 业务逻辑错误
-  CACHE = 'cache',          // 缓存错误（可选）
-  UNKNOWN = 'unknown'       // 未知错误
+  NETWORK = 'API:NETWORK_ERROR',      // 网络错误
+  CONCURRENT = 'API:CONCURRENT_ERROR',// 请求过多
+  AUTH = 'API:UN_AUTH',            // 认证错误
+  BUSINESS = 'API:BUSINESS_ERROR',    // 业务逻辑错误
+  CACHE = 'API:CACHE_ERROR',          // 缓存错误（可选）
+  UNKNOWN = 'API:UNKNOWN_ERROR',       // 未知错误
+  TIMEOUT = 'API:TIMEOUT_ERROR',       // 请求超时
+  VALIDATION = 'API:VALIDATION_ERROR'  // 参数校验错误
 }
 
 // 标准错误结构
