@@ -1,8 +1,23 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios"
-import { AxiosRequestConfig, AxiosServiceOptions } from "@/services/request/type"
+import { AxiosRequestConfig, AxiosServiceOptions, TokenStorage } from "@/services/request/type"
 import LRUCache from "@/utils/lru"
 import secure from "@/utils/secure";
 
+// 默认基于 localStorage 的对双token存/取实现
+const localStorageTokenStorage: TokenStorage = {
+  getAccessToken: () => localStorage.getItem("accessToken"),
+  getRefreshToken: () => localStorage.getItem("refreshToken"),
+  setTokens: (accessToken, refreshToken) => {
+    localStorage.setItem("accessToken", accessToken);
+    if (refreshToken) {
+      localStorage.setItem("refreshToken", refreshToken);
+    }
+  },
+  clearTokens: () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+  }
+};
 
 class AxiosService {
   pendingRequests: Map<string, Function>;
@@ -11,6 +26,11 @@ class AxiosService {
   instance: AxiosInstance;
   cache: LRUCache;
   #aseKey: string;
+
+  // 双token相关
+  private isRefreshing = false;
+  private refreshSubscribers: ((token: string) => void)[] = [];
+  private tokenStorage: TokenStorage;
 
   constructor(options:AxiosServiceOptions) {
     // 初始化请求管理队列
@@ -22,7 +42,7 @@ class AxiosService {
 
     // 初始化实例
     this.instance = axios.create({
-      baseURL: options.baseURL || process.env.VUE_APP_BASE_URL,
+      baseURL: options.baseURL || import.meta.env.VITE_API_URL,
       timeout: options.timeout || 5000
     })
 
@@ -32,8 +52,11 @@ class AxiosService {
       maxAge: options.maxAge || 1000 * 60 * 5
     })
 
-    // 初始化加密密钥
-    this.#aseKey = process.env.AES_KEY || 'chenanshuishandsomeboy';
+    // 初始化加密密钥 这里还是保存在客户端，不建议这样做，看看之后有没有好的处理
+    this.#aseKey = import.meta.env.AES_KEY || 'chenanshuishandsomeboy';
+
+    // 初始化 Token 存储
+    this.tokenStorage = options.tokenStorage || localStorageTokenStorage;
 
     // 初始化请求拦截器
     this.instance.interceptors.request.use(
@@ -57,28 +80,19 @@ class AxiosService {
           config = this.encryptRequest(config);
         }
 
-        /* 使用双token判断 */
-        /* const accessToken = localStorage.getItem('accessToken');
+        // 双 Token 判断逻辑
+        const accessToken = this.tokenStorage.getAccessToken();
+        const refreshToken = this.tokenStorage.getRefreshToken();
 
-
+        // 添加 Authorization 头
         if (accessToken) {
-          config.headers['Authorization'] = `Bearer ${accessToken}`
-          this.activeRequestsCount++;
-          return config;
+          config.headers.Authorization = `Bearer ${accessToken}`;
+          return this.verifyAndRefreshToken(config);
         }
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) { // 存在刷新token但是访问token不存在，则使用刷新token获取访问token
-          return this.refreshToken().then(accessToken => {
-            localStorage.setItem('accessToken', accessToken);
-            config.headers['Authorization'] = `Bearer ${accessToken}`
-            this.activeRequestsCount++;
-            return config;
-          }).catch(err => {
-            localStorage.removeItem('refreshToken');
-            localStorage.removeItem('accessToken');
-            return Promise.reject(err);
-          })
-        } */
+
+        if (refreshToken) {
+          return this.handleTokenRefresh(config);
+        }
 
         this.activeRequestsCount++;
         return config
@@ -100,6 +114,12 @@ class AxiosService {
       error => {
         this.removePendingRequest(error.config || {});
         this.activeRequestsCount--;
+        const originalRequest = error.config;
+        
+        // Token 过期处理（401 状态码）
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          return this.handleAuthError(originalRequest);
+        }
         return Promise.reject(error)
       }
     )
@@ -167,11 +187,103 @@ class AxiosService {
     }
   }
 
-  // 刷新获取refreshToken
-  async refreshToken() {
-    const refreshToken = localStorage.getItem('refreshToken');
-    const response = await axios.post('/api/user/refresh', { refreshToken });
+  // 验证并刷新 Token
+  private async verifyAndRefreshToken(config: AxiosRequestConfig) {
+    try {
+      // 简单验证 Token 是否即将过期（生产环境应使用 JWT 解码验证）
+      if (this.isTokenExpired()) {
+        return this.handleTokenRefresh(config);
+      }
+      return config;
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+
+  // 处理 Token 刷新
+  private async handleTokenRefresh(config: AxiosRequestConfig) {
+    if (!this.isRefreshing) {
+      this.isRefreshing = true;
+      try {
+        const newAccessToken = await this.refreshToken();
+        this.tokenStorage.setTokens(newAccessToken);
+        
+        // 执行等待中的请求
+        this.refreshSubscribers.forEach(callback => callback(newAccessToken));
+        this.refreshSubscribers = [];
+        
+        // 重试原始请求
+        config.headers.Authorization = `Bearer ${newAccessToken}`;
+        return config;
+      } catch (error) { // 刷新 Token 失败，跳转登录页
+
+        // 这里后期可能写一个auth高阶组件，用于处理登录过期跳转
+
+        this.tokenStorage.clearTokens();
+        window.location.href = '/login';
+        
+        
+        return Promise.reject(error);
+      } finally {
+        this.isRefreshing = false;
+      }
+    }
+
+    // 如果已经在刷新中，返回一个等待 Promise
+    return new Promise((resolve) => {
+      this.refreshSubscribers.push((newToken) => {
+        config.headers.Authorization = `Bearer ${newToken}`;
+        resolve(config);
+      });
+    });
+  }
+
+  // 处理认证错误
+  private async handleAuthError(originalRequest: AxiosRequestConfig) {
+    originalRequest._retry = true;
+    
+    try {
+      const newAccessToken = await this.refreshToken();
+      this.tokenStorage.setTokens(newAccessToken);
+      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+      return this.instance(originalRequest);
+    } catch (error) {
+      // 这里后期可能写一个auth高阶组件，用于处理登录过期跳转
+
+        this.tokenStorage.clearTokens();
+        window.location.href = '/login';
+        
+        
+        return Promise.reject(error);
+    }
+  }
+
+  // 修改后的 refreshToken 方法
+  private async refreshToken() {
+    const refreshToken = this.tokenStorage.getRefreshToken();
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    // token是否前端加密也是一个值得考量的事，暂时不做
+    const response = await axios.post(
+      `${import.meta.env.VITE_API_URL}/auth/refresh-token`,
+      { refreshToken },
+    );
+
+    if (!response.data.accessToken) {
+      throw new Error('Invalid refresh token response');
+    }
+
     return response.data.accessToken;
+  }
+
+  // 新增方法：简单 Token 过期检查（生产环境需要更完整实现）
+  private isTokenExpired(): boolean {
+    // 这里可以添加实际的 JWT 过期时间检查逻辑
+    // 示例：检查 localStorage 中的过期时间戳
+    const expiryTime = localStorage.getItem('tokenExpiry');
+    return expiryTime ? Date.now() > parseInt(expiryTime) : false;
   }
 }
 
@@ -181,6 +293,7 @@ const options = {
   // capacity:50, // 开启缓存后，缓存数量
   // maxAge:1000*60*5 // 开启缓存后，缓存生命周期
   // maxRequestsCount:5, // 最大同时发送接口数
+  // tokenStorage: localStorageTokenStorage // 自定义 Token 存储
 }
 
 export const createRequest = (options:AxiosServiceOptions):AxiosService => {

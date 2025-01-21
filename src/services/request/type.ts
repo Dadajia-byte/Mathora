@@ -9,6 +9,7 @@ export interface EncryptionOptions {
 export interface AxiosRequestConfig extends OriginalAxiosRequestConfig {
   cache?: boolean;
   encryption?: EncryptionOptions;
+  _retry?: boolean;
 }
 
 export interface AxiosServiceOptions {
@@ -17,4 +18,13 @@ export interface AxiosServiceOptions {
   capacity?: number;
   maxAge?: number;
   maxRequestsCount?: number;
+  tokenStorage?: TokenStorage;
+}
+
+// 定义 Token 存储接口
+export interface TokenStorage {
+  getAccessToken: () => string | null;
+  getRefreshToken: () => string | null;
+  setTokens: (accessToken: string, refreshToken?: string) => void;
+  clearTokens: () => void;
 }
