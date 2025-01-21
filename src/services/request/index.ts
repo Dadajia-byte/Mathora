@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosResponse } from "axios"
 import { AxiosRequestConfig, AxiosServiceOptions, TokenStorage, ErrorType, AppError } from "@/services/request/type"
 import LRUCache from "@/utils/lru"
 import secure from "@/utils/secure";
-import { createError } from "./errorHandler";
+import { createError, handleError } from "./errorHandler";
 
 
 // 默认基于 localStorage 的对双token存/取实现
@@ -29,6 +29,10 @@ class AxiosService {
   cache: LRUCache;
   #aseKey: string;
   private tokenStorage: TokenStorage;
+
+  // 用于解决双token竞态问题
+  private isRefreshing: boolean = false;
+  private refreshSubscribers: Array<(token: string) => void> = [];
 
   constructor(options:AxiosServiceOptions) {
     // 初始化请求管理队列
@@ -62,7 +66,7 @@ class AxiosService {
         // 同时请求过多拦截 
         if (this.activeRequestsCount >= this.maxRequestsCount) {
           return Promise.reject(
-            createError('同时请求过多', ErrorType.CONCURRENT, { code: 429 })
+            createError('同时请求过多', ErrorType.CONCURRENT, { code: 10007 })
           );
         }
 
@@ -71,9 +75,6 @@ class AxiosService {
         // 缓存判断
         const cacheKey = this.generateRequestKey(config);
         if (config.cache && this.cache.has(cacheKey)) {
-          const controller = new AbortController();
-          controller.abort('请求取消，命中缓存'); // 取消请求
-          config.signal = controller.signal; // 绑定 AbortController
           const cachedResponse = this.cache.get(cacheKey);
           return Promise.resolve(cachedResponse);
         }
@@ -87,29 +88,45 @@ class AxiosService {
         }
 
         // 双 Token 判断逻辑
-        const accessToken = this.tokenStorage.getAccessToken(); // 自己设置的token存储，拿到了说明绝对没过期
+        const accessToken = this.tokenStorage.getAccessToken(); 
         const refreshToken = this.tokenStorage.getRefreshToken();
 
-        // 
-        if(refreshToken) {
-          if (accessToken) { // 有accesstoken就直接放行
+        if (refreshToken) { // 有刷新令牌 还要看有没有访问令牌
+          if (accessToken) { // 如果有访问令牌，直接加入请求头
+            // 这里有个问题，如果accessToken过期了怎么办呢？
             config.headers.Authorization = `Bearer ${accessToken}`;
-          } else { // 没有accesstoken但是有refreshtoken就去刷新accesstoken
+          } else {
+            if (this.isRefreshing) {
+              // 如果正在刷新 token，其他请求等待
+              return new Promise((resolve, _reject) => {
+                this.refreshSubscribers.push((token: string) => {
+                  config.headers.Authorization = `Bearer ${token}`;
+                  resolve(config);
+                });
+              });
+            }
+
+            // 如果没有正在刷新，发起刷新 token 请求
+            this.isRefreshing = true;
             try {
               const newAccessToken = await this.refreshToken(refreshToken);
+              this.isRefreshing = false;
+
+              // 刷新后的所有等待请求都会继续
+              this.refreshSubscribers.forEach((callback) => callback(newAccessToken));
+              this.refreshSubscribers = []; // 清空队列
+
               config.headers.Authorization = `Bearer ${newAccessToken}`;
+              return config;
             } catch (error) {
+              this.isRefreshing = false;
               this.tokenStorage.clearTokens();
-              return Promise.reject(
-                createError('未找到刷新令牌', ErrorType.AUTH, { code: 401 })
-              );
+              return Promise.reject(createError('未找到刷新令牌', ErrorType.AUTH, { code: 10010 }));
             }
           }
-        } else { // refreshtoken都没有或者过期的话滚去登录
+        } else { // 没有刷新令牌，直接返回错误
           this.tokenStorage.clearTokens();
-          return Promise.reject(
-            createError('未找到刷新令牌', ErrorType.AUTH, { code: 401 })
-          );
+          return Promise.reject(createError('未找到刷新令牌', ErrorType.AUTH, { code: 10010 }));
         }
 
         this.activeRequestsCount++;
@@ -125,46 +142,29 @@ class AxiosService {
         // 处理缓存标记
         if ((response.config as AxiosRequestConfig).cache) {
           const cacheKey = this.generateRequestKey(response.config);
-          this.cache.set(cacheKey, response);
+          this.cache.set(cacheKey, {...response.data, _isCache: true});
         }
         this.activeRequestsCount--;
-        // 业务状态码检查（假设成功码为 200）
-        if (response.data.code !== 200) {
-          throw createError(
-            response.data.message,
-            ErrorType.BUSINESS,
-            { code: response.data.code }
-          );
+
+        // 处理后端返回错误（认证过期、业务逻辑错误、参数错误等错误，此类错误都看data内部code）
+        const { code, message } = response.data;
+        if (code !== 10000) { // 除了10000都是错误
+          switch (code) {
+            case 10010: // 无效的刷新令牌
+            case 10011: // 访问令牌已过期
+              return Promise.reject(createError(message, ErrorType.AUTH, { code }));
+            default: // 其他暂时都归类为业务错误
+              return Promise.reject(createError(message, ErrorType.BUSINESS, { code }));
+          }
         }
         return response;
       },
       error => {
         // 统一转换错误
-        let processedError: AppError;
-        
         this.removePendingRequest(error.config || {});
         this.activeRequestsCount--;
-        if (error.response) {
-          // HTTP 状态码处理
-          switch (error.response.status) {
-            case 401:
-              processedError = createError('登录过期', ErrorType.AUTH, { code: 401 });
-              break;
-            case 429:
-              processedError = createError('请求过于频繁', ErrorType.CONCURRENT);
-              break;
-            default:
-              processedError = createError(
-                `服务器错误 (${error.response.status})`,
-                ErrorType.NETWORK
-              );
-          }
-        } else if (error.request) {
-          processedError = createError('网络连接失败', ErrorType.NETWORK);
-        } else {
-          processedError = createError('未知错误', ErrorType.UNKNOWN);
-        }
-        return Promise.reject(processedError);
+        handleError(error);
+        return Promise.reject(error);
       }
     )
   }
@@ -244,13 +244,12 @@ class AxiosService {
   private async refreshToken(refreshToken:string): Promise<string> {
     // token是否前端加密也是一个值得考量的事，暂时不做
     const response = await axios.post('/auth/refresh-token', { refreshToken });
-    if (response.data.code === 401) {
-      return Promise.reject(
-        createError('未找到刷新令牌', ErrorType.AUTH, { code: 401 })
-      )
+    const { code, message, data } = response.data;
+    if (code === 10010 || code === 10011) {
+      return Promise.reject(createError(message, ErrorType.AUTH, { code }))
     }
-    this.tokenStorage.setTokens(response.data.accessToken, refreshToken);
-    return response.data.accessToken;
+    this.tokenStorage.setTokens(data.accessToken, data.refreshToken); // 每次请求都会刷新refreshtoken，所以要重新记录
+    return data.accessToken;
   }
 
 }
