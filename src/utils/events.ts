@@ -4,10 +4,9 @@ export const eventName = [
     'API:NETWORK_ERROR', // 网络错误
     'API:BUSINESS_ERROR', // 业务逻辑错误
     'API:UNKNOWN_ERROR', // 未知错误
-    'API:CONCURRENT_ERROR', // 请求过多
     'API:TIMEOUT_ERROR', // 请求超时
-    'API:CACHE_ERROR', // 缓存错误
-    'API:ANY_ERROR' // 任意错误_兜底
+    'API:ANY_ERROR', // 任意错误_兜底
+    'API:ABORTED' // 请求取消
 ] as const;
 
 export type EventName = (typeof eventName)[number];

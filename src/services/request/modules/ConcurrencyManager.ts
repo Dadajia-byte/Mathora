@@ -21,7 +21,7 @@ export class ConcurrencyManager implements RequestModule {
   }
 
   onResponse(response: AxiosResponse): AxiosResponse {
-    this.activeCount--;
+    this.activeCount = Math.max(0, this.activeCount - 1); // 高并发场景下，防止并发数为负数
     this.queue.shift()?.();
     return response;
   }

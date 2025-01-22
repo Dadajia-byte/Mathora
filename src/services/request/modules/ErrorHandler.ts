@@ -1,22 +1,22 @@
-import event, { EventName }from '@/utils/events';
-import { AppError, ErrorType, RequestModule } from '../type';
-
+import { RequestModule,BusinessError,ErrorCode } from '../type';
+import events from '@/utils/events';
 export class ErrorHandler implements RequestModule {
-  private errorEventMap: Record<ErrorType, EventName> = {
-    [ErrorType.AUTH]: 'API:UN_AUTH',
-    [ErrorType.VALIDATION]: 'API:VALIDATION_ERROR',
-    [ErrorType.NETWORK]: 'API:NETWORK_ERROR',
-    [ErrorType.BUSINESS]: 'API:BUSINESS_ERROR',
-    [ErrorType.CONCURRENT]: 'API:CONCURRENT_ERROR',
-    [ErrorType.TIMEOUT]: 'API:TIMEOUT_ERROR',
-    [ErrorType.CACHE]: 'API:CACHE_ERROR',
-    [ErrorType.UNKNOWN]: 'API:UNKNOWN_ERROR'
-  };
+   onError(error: BusinessError) {
+    const errorMap = {
+      [ErrorCode.UNAUTHORIZED]: 'API:UN_AUTH',
+      [ErrorCode.VALIDATION_ERROR]: 'API:VALIDATION_ERROR',
+      [ErrorCode.NETWORK_ERROR]: 'API:NETWORK_ERROR',
+      [ErrorCode.BUSINESS_ERROR]: 'API:BUSINESS_ERROR',
+      [ErrorCode.TIMEOUT_ERROR]: 'API:TIMEOUT_ERROR',
+      [ErrorCode.UNKNOWN_ERROR]: 'API:UNKNOWN_ERROR',
+      [ErrorCode.ABORTED]: 'API:ABORTED'
+    } as const;
 
-  async onError(error: AppError): Promise<void> {
-    // 仅做错误转发，不包含任何处理逻辑
-    const eventName = this.errorEventMap[error.type] || 'API:UNKNOWN_ERROR';
-    event.emit(eventName, error);
-    event.emit('API:ANY_ERROR', error);
+    // 发送特定错误事件
+    const eventType = errorMap[error.code] || 'API:UNKNOWN_ERROR';
+    events.emit(eventType, error);
+    
+    // 发送兜底错误事件
+    events.emit('API:ANY_ERROR', error);
   }
 }

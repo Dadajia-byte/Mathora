@@ -1,4 +1,4 @@
-import { RequestModule, AxiosRequestConfig, AxiosResponse } from "../type";
+import { RequestModule, AxiosRequestConfig, AxiosResponse,BusinessError } from "../type";
 // 请求去重模块
 export class RequestDeduplicator implements RequestModule {
   private pending = new Map<string, AbortController>();
@@ -17,20 +17,17 @@ export class RequestDeduplicator implements RequestModule {
     return config;
   }
 
-  onResponse(response: AxiosResponse) {
+  onResponse(response: AxiosResponse):AxiosResponse {
     const key = this.generateKey(response.config);
     this.pending.delete(key);
+    return response;
   }
 
-  // 生成稳定的请求key
-    private generateKey(config: AxiosRequestConfig): string {
-      const stableStringify = (obj: any): string => {
-        if (obj === null || obj === undefined) return 'null';
-        if (typeof obj !== 'object') return JSON.stringify(obj);
-        if (Array.isArray(obj)) return `[${obj.map(stableStringify).join(',')}]`;
-        const keys = Object.keys(obj).sort();
-        return `{${keys.map(k => `"${k}":${stableStringify(obj[k])}`).join(',')}}`;
-      };
-      return `${config.url}-${stableStringify(config.params)}-${stableStringify(config.data)}`;
-    }
+  /* onError(_error: BusinessError, config?: AxiosRequestConfig) {
+  } */
+
+
+ private generateKey(config: AxiosRequestConfig): string {
+    return `${config.url}-${JSON.stringify(config.params)}-${JSON.stringify(config.data)}`;
+  }
 }

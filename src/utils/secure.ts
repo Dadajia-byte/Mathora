@@ -1,5 +1,6 @@
 import CryptoJS from 'crypto-js';
-import NodeRSA from 'node-rsa';
+// import NodeRSA from 'node-rsa';
+// 浏览器环境下不能用上面那个库
 
 class Secure {
   constructor() {
@@ -118,20 +119,20 @@ class Secure {
    * @param bitLength 密钥长度（默认1024）
    * @returns RSA私钥
    */
-  generateRSAPrivateKey(encodeKey: string, bitLength: number = 1024): NodeRSA {
+  /* generateRSAPrivateKey(encodeKey: string, bitLength: number = 1024): NodeRSA {
     const key = new NodeRSA({ b: bitLength });
     key.importKey(encodeKey, 'pkcs1-private');
     return key;
-  }
+  } */
 
   /**
    * 生成RSA公钥
    * @param privateKey RSA私钥
    * @returns RSA公钥
    */
-  generateRSAPublicKey(privateKey: NodeRSA): string {
+  /* generateRSAPublicKey(privateKey: NodeRSA): string {
     return privateKey.exportKey('pkcs1-public');
-  }
+  } */
 
   /**
    * 使用RSA解密字符串
@@ -139,9 +140,9 @@ class Secure {
    * @param privateKey RSA私钥
    * @returns 解密后的字符串
    */
-  decodeRSA(decodeStr: string, privateKey: NodeRSA): string {
+  /* decodeRSA(decodeStr: string, privateKey: NodeRSA): string {
     return privateKey.decrypt(decodeStr, 'utf8');
-  }
+  } */
 
   /**
    * 获取RSA密钥长度

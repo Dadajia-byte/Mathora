@@ -32,12 +32,14 @@ class LRUCache {
   }
 
   set(key: string, value: any) {
+    console.log('set', key, value);
     if (this.#map.has(key)) {
       this.#map.delete(key);
     }
     const item = JSON.stringify({ value, timestamp: Date.now() });
     this.#map.set(key, item);
-
+    console.log(this.#map);
+    
     // 超容量，清队头
     if (this.#map.size > this.#capacity) {
       const firstKey = this.#map.keys().next().value;

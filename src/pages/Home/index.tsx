@@ -1,11 +1,24 @@
 import { useNavigate } from 'react-router-dom'; // 用于跳转路由
 import i18n from '@/i18n';
+import request from '@/services/request';
 interface HomeProps {
   t: (key: string) => string;
 }
 
 function Home({ t }: HomeProps) {
   const navigate = useNavigate(); // 获取跳转方法
+
+  const test1 = () => {
+    // 测试一下缓存功能
+    request.post('/test1', {
+      data: {
+        name: 'test1'
+      },
+      cache: true, // 开启缓存
+    },
+    )
+  }
+
 
   // 切换语言的函数
   const changeLanguage = (language: string) => {
@@ -23,6 +36,7 @@ function Home({ t }: HomeProps) {
         <button onClick={() => changeLanguage('en-US')}>{t('english')}</button>
         <button onClick={() => changeLanguage('zh-CN')}>{t('chinese')}</button>
       </div>
+      <button onClick={() => test1()}>测试</button>
     </div>
   );
 }

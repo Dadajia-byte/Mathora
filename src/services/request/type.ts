@@ -32,28 +32,28 @@ export interface TokenStorage {
 }
 
 
-// 错误类型分类
-export enum ErrorType {
-  NETWORK = 'API:NETWORK_ERROR',      // 网络错误
-  CONCURRENT = 'API:CONCURRENT_ERROR',// 请求过多
-  AUTH = 'API:UN_AUTH',            // 认证错误
-  BUSINESS = 'API:BUSINESS_ERROR',    // 业务逻辑错误
-  CACHE = 'API:CACHE_ERROR',          // 缓存错误（可选）
-  UNKNOWN = 'API:UNKNOWN_ERROR',       // 未知错误
-  TIMEOUT = 'API:TIMEOUT_ERROR',       // 请求超时
-  VALIDATION = 'API:VALIDATION_ERROR'  // 参数校验错误
+export enum ErrorCode {
+  UNAUTHORIZED = 10001,
+  VALIDATION_ERROR = 10003,
+  BUSINESS_ERROR = 10004,
+  NETWORK_ERROR = 10005,
+  TIMEOUT_ERROR = 10006,
+  UNKNOWN_ERROR = 10007,
+  ABORTED = 10008, // 请求取消错误码
 }
-
-// 标准错误结构
-export interface AppError extends Error {
-  type: ErrorType;         // 错误类型
-  code?: number;           // 错误码（可选）
-  data?: any;              // 附加数据（可选）
-  isCache?: boolean;       // 是否来自缓存（针对缓存场景）
+export class BusinessError extends Error {
+  constructor(
+    public code: ErrorCode,
+    message: string,
+    public data?: any
+  ) {
+    super(message);
+    this.name = 'BusinessError';
+  }
 }
 
 export interface RequestModule {
   onRequest?: (config: AxiosRequestConfig) => Promise<AxiosRequestConfig>;
   onResponse?: (response: AxiosResponse) => AxiosResponse;
-  onError?: (error: AppError) => Promise<unknown>;
+  onError?: (error: BusinessError, config?: AxiosRequestConfig) => void;
 }
