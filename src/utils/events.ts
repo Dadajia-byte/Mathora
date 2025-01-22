@@ -1,4 +1,4 @@
-const eventName = [
+export const eventName = [
     'API:UN_AUTH', // 未授权（refresh token过期或者没有）
     'API:VALIDATION_ERROR', // 参数校验错误
     'API:NETWORK_ERROR', // 网络错误
@@ -7,9 +7,10 @@ const eventName = [
     'API:CONCURRENT_ERROR', // 请求过多
     'API:TIMEOUT_ERROR', // 请求超时
     'API:CACHE_ERROR', // 缓存错误
+    'API:ANY_ERROR' // 任意错误_兜底
 ] as const;
 
-type EventName = (typeof eventName)[number];
+export type EventName = (typeof eventName)[number];
 
 
 class EventEmiiter {

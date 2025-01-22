@@ -1,4 +1,4 @@
-import { InternalAxiosRequestConfig as OriginalAxiosRequestConfig } from 'axios';
+import { InternalAxiosRequestConfig as OriginalAxiosRequestConfig, AxiosResponse as OriginalAxiosResponse } from 'axios';
 // 加密模块
 export interface EncryptionOptions {
   method: 'AES' | 'RSA'; // 支持的加密方式（暂时只支持AES的cbc模式）
@@ -10,15 +10,17 @@ export interface AxiosRequestConfig extends OriginalAxiosRequestConfig {
   cache?: boolean;
   encryption?: EncryptionOptions;
   _retry?: boolean;
+  __fromCache?: boolean;
+}
+
+export interface AxiosResponse extends OriginalAxiosResponse {
+  config: AxiosRequestConfig;
 }
 
 export interface AxiosServiceOptions {
   baseURL?: string;
   timeout?: number;
-  capacity?: number;
-  maxAge?: number;
-  maxRequestsCount?: number;
-  tokenStorage?: TokenStorage;
+  modules?: RequestModule[];
 }
 
 // 定义 Token 存储接口
@@ -48,4 +50,10 @@ export interface AppError extends Error {
   code?: number;           // 错误码（可选）
   data?: any;              // 附加数据（可选）
   isCache?: boolean;       // 是否来自缓存（针对缓存场景）
+}
+
+export interface RequestModule {
+  onRequest?: (config: AxiosRequestConfig) => Promise<AxiosRequestConfig>;
+  onResponse?: (response: AxiosResponse) => AxiosResponse;
+  onError?: (error: AppError) => Promise<unknown>;
 }
