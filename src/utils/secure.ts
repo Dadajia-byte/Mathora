@@ -69,6 +69,7 @@ class Secure {
    */
   encodeAES(encodeString: string, encodeKey: string, iv: string = '6cd9616beb39d4034fdebe107df9a399', mode: string = 'cbc'): string {
     let result = '';
+    debugger;
     const key = CryptoJS.enc.Hex.parse(encodeKey);
     const ivParsed = CryptoJS.enc.Hex.parse(iv);
     if (mode === 'ecb') {
@@ -83,6 +84,7 @@ class Secure {
         padding: CryptoJS.pad.Pkcs7
       }).toString();
     }
+    debugger;
     return result;
   }
 

@@ -5,7 +5,7 @@ export class CacheManager implements RequestModule {
   constructor(private cache: LRUCache) {}
 
   async onRequest(config: AxiosRequestConfig) {
-    if (!config.data.cache) return config;
+    if (!config.cache) return config;
     const key = this.generateKey(config);
     const isCached = this.cache.has(key);
     if (isCached) {
@@ -17,8 +17,7 @@ export class CacheManager implements RequestModule {
   }
 
   onResponse(response: AxiosResponse) {
-    const isCache = JSON.parse(response.config.data).cache;
-    
+    const isCache = response.config.cache;
     if (isCache) {   
       const key = this.generateKey(response.config);
       this.cache.set(key, response.data);

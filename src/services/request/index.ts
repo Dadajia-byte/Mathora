@@ -52,8 +52,6 @@ class AxiosService {
     (error: Error) => {
 
       if (error.code = ErrorCode.CACHED) return Promise.resolve((error as BusinessError).data);
-      
-      
       /* if (error instanceof CanceledError) {
         const abortError = new BusinessError(
           ErrorCode.ABORTED, 
@@ -87,11 +85,15 @@ const service = new AxiosService({
       capacity: 50,
       maxAge: 1000 * 60
     })),
-    new EncryptionHandler(import.meta.env.AES_KEY), // 加密
+    new EncryptionHandler('casishandsomeboy'), // 加密
     new ConcurrencyManager(8), // 并发控制
     new AuthManager(), // 认证机制
     new ErrorHandler() // 仅负责事件转发
   ]
 });
 
-export default service.request;
+function request<T>(url:string,data?:any,config?:AxiosRequestConfig):Promise<T> {
+  return service.request.post(url,data,config);
+}
+
+export default request;

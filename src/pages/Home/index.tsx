@@ -10,13 +10,13 @@ function Home({ t }: HomeProps) {
 
   const test1 = async () => {
     // 测试一下缓存功能
-    const res = await request.post('/test1', {
-      data: {
-        name: 'test1'
-      },
-      cache: true, // 开启缓存
-    },
-    )
+    const res = await request('/test1', { name: 'test1', age: 18 }, {
+      encryption: {
+        method: 'AES',
+        encryptWholeMessage: false,
+        encryptFields: ['name']
+      }
+    });
     console.log(res);
   }
 
