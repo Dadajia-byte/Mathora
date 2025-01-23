@@ -1,4 +1,4 @@
-import { Axios, InternalAxiosRequestConfig as OriginalAxiosRequestConfig, AxiosResponse as OriginalAxiosResponse, AxiosError } from 'axios';
+import { InternalAxiosRequestConfig as OriginalAxiosRequestConfig, AxiosResponse as OriginalAxiosResponse, AxiosError } from 'axios';
 // 加密模块
 export interface EncryptionOptions {
   method: 'AES' | 'RSA'; // 支持的加密方式（暂时只支持AES的cbc模式）
@@ -7,10 +7,6 @@ export interface EncryptionOptions {
 }
 
 export interface AxiosRequestConfig extends OriginalAxiosRequestConfig {
-  cache?: boolean;
-  encryption?: EncryptionOptions;
-  _retry?: boolean;
-  __fromCache?: boolean;
 }
 
 export interface AxiosResponse extends OriginalAxiosResponse {

@@ -31,20 +31,20 @@ export class EncryptionHandler implements RequestModule {
 
   // 加密数据
   private encryptData(data: any, method: 'AES' | 'RSA', aesIV?:string): any {
-      try {
-        if (method === 'AES') {
-          const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
-          const encrypted = secure.encodeAES(dataStr, this.key, aesIV);
-          return encrypted;
-        } else if (method === 'RSA') {
-          /* 暂时不做RSA加密，我还没搞得特别懂 */
-        }
-        return data;
-      } catch (e) {
-        console.error('数据加密错误:', e);
-        throw e;
+    try {
+      if (method === 'AES') {
+        const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
+        const encrypted = secure.encodeAES(dataStr, this.key, aesIV);
+        return encrypted;
+      } else if (method === 'RSA') {
+        /* 暂时不做RSA加密，我还没搞得特别懂 */
       }
+      return data;
+    } catch (e) {
+      console.error('数据加密错误:', e);
+      throw e;
     }
+  }
 }
 
 export default EncryptionHandler;
