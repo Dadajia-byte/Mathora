@@ -25,7 +25,8 @@ export const routesPC:routerConfig = [
         path: '/user/info',
         component: lazy(() => import('@/pages/User/Info')),
         namespaces: ['test']
-      }
+      },
+
     ]
   }
 ];
