@@ -11,12 +11,11 @@ export class ErrorHandler implements RequestModule {
       [ErrorCode.UNKNOWN_ERROR]: 'API:UNKNOWN_ERROR',
       [ErrorCode.ABORTED]: 'API:ABORTED',
       [ErrorCode.CACHED]: 'API:CACHED',
+      [ErrorCode.DEDUPLICATOR]: 'API:DEDUPLICATOR'
     } as const;
-
     // 发送特定错误事件
     const eventType = errorMap[error.code] || 'API:UNKNOWN_ERROR';
     events.emit(eventType, error);
-    
     // 发送兜底错误事件
     events.emit('API:ANY_ERROR', error);
   }

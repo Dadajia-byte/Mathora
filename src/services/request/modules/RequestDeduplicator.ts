@@ -1,19 +1,16 @@
-import { RequestModule, AxiosRequestConfig, AxiosResponse } from "../type";
+import { RequestModule, AxiosRequestConfig, AxiosResponse, BusinessError, ErrorCode } from "../type";
 // 请求去重模块
 export class RequestDeduplicator implements RequestModule {
   private pending = new Map<string, AbortController>();
 
   async onRequest(config: AxiosRequestConfig): Promise<AxiosRequestConfig> {
     const key = this.generateKey(config);
-    
     if (this.pending.has(key)) {
-      this.pending.get(key)?.abort();
+      return Promise.reject(new BusinessError(ErrorCode.DEDUPLICATOR, '重复操作过多'));
     }
-
     const controller = new AbortController();
     config.signal = controller.signal;
     this.pending.set(key, controller);
-    
     return config;
   }
 
@@ -27,7 +24,7 @@ export class RequestDeduplicator implements RequestModule {
   } */
 
 
- private generateKey(config: AxiosRequestConfig): string {
-    return `${config.url}-${JSON.stringify(config.params)}-${JSON.stringify(config.data)}`;
+  private generateKey(config: AxiosRequestConfig): string { // 暂时只处理url和data
+    return `${config.url}-${typeof config.data ==='string'?config.data:JSON.stringify(config.data)}`;
   }
 }

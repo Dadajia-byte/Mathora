@@ -38,7 +38,8 @@ export enum ErrorCode {
   TIMEOUT_ERROR = 10006,
   UNKNOWN_ERROR = 10007,
   ABORTED = 10008, // 请求取消错误码
-  CACHED = 10009 // 缓存命中错误码
+  CACHED = 10009, // 缓存命中错误码
+  DEDUPLICATOR = 10010 // 请求去重错误码
 }
 export class BusinessError extends Error {
   constructor(

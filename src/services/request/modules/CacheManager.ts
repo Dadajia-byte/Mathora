@@ -7,9 +7,8 @@ export class CacheManager implements RequestModule {
   async onRequest(config: AxiosRequestConfig) {
     if (!config.cache) return config;
     const key = this.generateKey(config);
-    const isCached = this.cache.has(key);
-    if (isCached) {
-      const data = this.cache.get(key);
+    const data = this.cache.get(key);
+    if (data) {
       // 利用抛出错误的方式，终止请求链。
       return Promise.reject(new BusinessError(ErrorCode.CACHED, '缓存命中', data));
     }
@@ -26,7 +25,7 @@ export class CacheManager implements RequestModule {
   }
 
   // 生成稳定的请求key
-  private generateKey(config: AxiosRequestConfig): string { // 暂时只处理url和data
+  private generateKey(config: AxiosRequestConfig): string { // 暂时只处理url和data 
     return `${config.url}-${typeof config.data ==='string'?config.data:JSON.stringify(config.data)}`;
   }
 }

@@ -7,7 +7,8 @@ export const eventName = [
     'API:TIMEOUT_ERROR', // 请求超时
     'API:ANY_ERROR', // 任意错误_兜底
     'API:ABORTED', // 请求取消
-    'API:CACHED' // 缓存命中
+    'API:CACHED', // 缓存命中
+    'API:DEDUPLICATOR' // 请求去重
 ] as const;
 
 export type EventName = (typeof eventName)[number];

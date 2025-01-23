@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, CanceledError } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { AxiosServiceOptions, RequestModule, AxiosRequestConfig, AxiosResponse, ErrorCode,BusinessError, Error } from './type';
 import {
   AuthManager,
@@ -30,50 +30,44 @@ class AxiosService {
           config = await module.onRequest?.(config) || config;
         }
         return config;
-      } 
+      }
     );
     // 响应拦截链
     this.instance.interceptors.response.use(
     (response: AxiosResponse) => {
       this.modules.forEach(module => module.onResponse?.(response));
       const { code, message, data } = response.data;
-      
       if (code !== 10000) {
         const error = new BusinessError(code, message, data);
-        const handler = code === ErrorCode.UNAUTHORIZED 
-          ? this.modules.find(m => m instanceof AuthManager)
-          : this.modules.find(m => m instanceof ErrorHandler);
-          
-        handler?.onError?.(error);
         throw error;
       }
       return response.data;
     },
-    (error: Error) => {
-
-      if (error.code = ErrorCode.CACHED) return Promise.resolve((error as BusinessError).data);
-      /* if (error instanceof CanceledError) {
-        const abortError = new BusinessError(
-          ErrorCode.ABORTED, 
-          '请求已被取消',
-          error.message
-        );
-        this.modules.find(m => m instanceof ErrorHandler)?.onError?.(abortError);
-        return;
-      }
-      const businessError = error?.response?.status === 408
-        ? new BusinessError(ErrorCode.TIMEOUT_ERROR, '请求超时')
-        : new BusinessError(ErrorCode.NETWORK_ERROR, error.message);
-      
-      this.modules.find(m => m instanceof ErrorHandler)?.onError?.(businessError);
-      throw businessError; */
-    }
+    this.errorHandler.bind(this)
   );
   }
   get request() {
     return this.instance;
   }
+  errorHandler (error:Error) {
+    let businessError;
+    if (error?.code) {
+      switch (error.code) {
+        case ErrorCode.CACHED:
+          return Promise.resolve((error as BusinessError).data);
+        default:
+          businessError = error;
+      }
+    } else {
+      businessError = error?.response?.status === 408
+          ? new BusinessError(ErrorCode.TIMEOUT_ERROR, '请求超时')
+          : new BusinessError(ErrorCode.NETWORK_ERROR, error.message);
+    }
+    this.modules.find(m => m instanceof ErrorHandler)?.onError?.(businessError as BusinessError);
+  }
 }
+
+
 
 // 使用示例
 const service = new AxiosService({
@@ -81,11 +75,12 @@ const service = new AxiosService({
   timeout: 10000,
   modules: [ // 模块依次的顺序处理为 请求去重 -> 缓存 -> 加密 -> 并发控制 -> 双Token
     new RequestDeduplicator(), // 请求去重
-     new CacheManager(new LRUCache({ // 缓存
+    new EncryptionHandler('casishandsomeboy'), // 加密
+    new CacheManager(new LRUCache({ // 缓存
       capacity: 50,
       maxAge: 1000 * 60
     })),
-    new EncryptionHandler('casishandsomeboy'), // 加密
+    
     new ConcurrencyManager(8), // 并发控制
     new AuthManager(), // 认证机制
     new ErrorHandler() // 仅负责事件转发
