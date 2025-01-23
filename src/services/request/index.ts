@@ -1,5 +1,5 @@
-import axios, { AxiosInstance, AxiosError, CanceledError } from 'axios';
-import { AxiosServiceOptions, RequestModule, AxiosRequestConfig, AxiosResponse, ErrorCode,BusinessError } from './type';
+import axios, { AxiosInstance, CanceledError } from 'axios';
+import { AxiosServiceOptions, RequestModule, AxiosRequestConfig, AxiosResponse, ErrorCode,BusinessError, Error } from './type';
 import {
   AuthManager,
   ConcurrencyManager,
@@ -26,20 +26,12 @@ class AxiosService {
     // 请求拦截链
     this.instance.interceptors.request.use(
     async (config: AxiosRequestConfig) => {
-      try {
         for (const module of this.modules) {
           config = await module.onRequest?.(config) || config;
         }
         return config;
-      } catch (error: any) {
-        return Promise.reject(new BusinessError(
-          ErrorCode.UNKNOWN_ERROR,
-          error.message
-        ));
-      }
-    }
-  );
-
+      } 
+    );
     // 响应拦截链
     this.instance.interceptors.response.use(
     (response: AxiosResponse) => {
@@ -57,9 +49,12 @@ class AxiosService {
       }
       return response.data;
     },
-    (error: AxiosError) => {
+    (error: Error) => {
 
-      if (error instanceof CanceledError) {
+      if (error.code = ErrorCode.CACHED) return Promise.resolve((error as BusinessError).data);
+      
+      
+      /* if (error instanceof CanceledError) {
         const abortError = new BusinessError(
           ErrorCode.ABORTED, 
           '请求已被取消',
@@ -68,12 +63,12 @@ class AxiosService {
         this.modules.find(m => m instanceof ErrorHandler)?.onError?.(abortError);
         return;
       }
-      const businessError = error.response?.status === 408
+      const businessError = error?.response?.status === 408
         ? new BusinessError(ErrorCode.TIMEOUT_ERROR, '请求超时')
         : new BusinessError(ErrorCode.NETWORK_ERROR, error.message);
       
       this.modules.find(m => m instanceof ErrorHandler)?.onError?.(businessError);
-      throw businessError;
+      throw businessError; */
     }
   );
   }

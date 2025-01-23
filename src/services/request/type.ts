@@ -1,4 +1,4 @@
-import { InternalAxiosRequestConfig as OriginalAxiosRequestConfig, AxiosResponse as OriginalAxiosResponse } from 'axios';
+import { Axios, InternalAxiosRequestConfig as OriginalAxiosRequestConfig, AxiosResponse as OriginalAxiosResponse, AxiosError } from 'axios';
 // 加密模块
 export interface EncryptionOptions {
   method: 'AES' | 'RSA'; // 支持的加密方式（暂时只支持AES的cbc模式）
@@ -40,6 +40,7 @@ export enum ErrorCode {
   TIMEOUT_ERROR = 10006,
   UNKNOWN_ERROR = 10007,
   ABORTED = 10008, // 请求取消错误码
+  CACHED = 10009 // 缓存命中错误码
 }
 export class BusinessError extends Error {
   constructor(
@@ -51,6 +52,9 @@ export class BusinessError extends Error {
     this.name = 'BusinessError';
   }
 }
+
+// 错误分三类：业务错误(包括缓存命中)、axios自带错误（网络、未知等）
+export type Error = BusinessError | AxiosError 
 
 export interface RequestModule {
   onRequest?: (config: AxiosRequestConfig) => Promise<AxiosRequestConfig>;

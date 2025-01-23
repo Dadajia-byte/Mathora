@@ -9,7 +9,8 @@ export class ErrorHandler implements RequestModule {
       [ErrorCode.BUSINESS_ERROR]: 'API:BUSINESS_ERROR',
       [ErrorCode.TIMEOUT_ERROR]: 'API:TIMEOUT_ERROR',
       [ErrorCode.UNKNOWN_ERROR]: 'API:UNKNOWN_ERROR',
-      [ErrorCode.ABORTED]: 'API:ABORTED'
+      [ErrorCode.ABORTED]: 'API:ABORTED',
+      [ErrorCode.CACHED]: 'API:CACHED',
     } as const;
 
     // 发送特定错误事件

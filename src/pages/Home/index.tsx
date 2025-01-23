@@ -8,15 +8,16 @@ interface HomeProps {
 function Home({ t }: HomeProps) {
   const navigate = useNavigate(); // 获取跳转方法
 
-  const test1 = () => {
+  const test1 = async () => {
     // 测试一下缓存功能
-    request.post('/test1', {
+    const res = await request.post('/test1', {
       data: {
         name: 'test1'
       },
       cache: true, // 开启缓存
     },
     )
+    console.log(res);
   }
 
 

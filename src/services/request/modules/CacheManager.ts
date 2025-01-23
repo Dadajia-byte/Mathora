@@ -1,5 +1,5 @@
 import LRUCache from "@/utils/lru";
-import { AxiosRequestConfig, AxiosResponse, RequestModule } from "../type";
+import { AxiosRequestConfig, AxiosResponse, BusinessError, ErrorCode, RequestModule } from "../type";
 // 缓存模块
 export class CacheManager implements RequestModule {
   constructor(private cache: LRUCache) {}
@@ -7,15 +7,11 @@ export class CacheManager implements RequestModule {
   async onRequest(config: AxiosRequestConfig) {
     if (!config.data.cache) return config;
     const key = this.generateKey(config);
-    console.log(key,1);
-    
-    console.log(this.cache.has(key));
-    
-    const cached = this.cache.get(key);
-    if (cached) {
-      console.log('from cache');
-      
-      return { ...config, data: cached, };
+    const isCached = this.cache.has(key);
+    if (isCached) {
+      const data = this.cache.get(key);
+      // 利用抛出错误的方式，终止请求链。
+      return Promise.reject(new BusinessError(ErrorCode.CACHED, '缓存命中', data));
     }
     return config;
   }
@@ -24,10 +20,7 @@ export class CacheManager implements RequestModule {
     const isCache = JSON.parse(response.config.data).cache;
     
     if (isCache) {   
-      console.log(response.config.data);
       const key = this.generateKey(response.config);
-      console.log(key,2);
-      
       this.cache.set(key, response.data);
     }
     return response;
