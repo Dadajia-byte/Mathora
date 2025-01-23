@@ -18,7 +18,6 @@ export interface AxiosResponse extends OriginalAxiosResponse {
 export interface AxiosServiceOptions {
   baseURL?: string;
   timeout?: number;
-  modules?: RequestModule[];
 }
 
 // 定义 Token 存储接口

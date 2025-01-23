@@ -10,7 +10,7 @@ function Home({ t }: HomeProps) {
 
   const test1 = async () => {
     // 测试一下缓存功能
-    const res = await request('/test1', { name: 'test1', age: 18 }, );
+    const res = await request('/test1', { name: 'test1', age: 18 });
     
     console.log(res);
     

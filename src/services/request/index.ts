@@ -18,7 +18,6 @@ class AxiosService {
       baseURL: option.baseURL,
       timeout: option.timeout
     });
-    this.modules = option.modules || [];
     this.setupInterceptors();
   }
 
@@ -65,6 +64,10 @@ class AxiosService {
     }
     this.modules.find(m => m instanceof ErrorHandler)?.onError?.(businessError as BusinessError);
   }
+  use(module: RequestModule) {
+    this.modules.push(module);
+    return this;
+  }
 }
 
 
@@ -73,19 +76,18 @@ class AxiosService {
 const service = new AxiosService({
   baseURL: '/api',
   timeout: 10000,
-  modules: [ // 模块依次的顺序处理为 请求去重 -> 缓存 -> 加密 -> 并发控制 -> 双Token
-    new RequestDeduplicator(), // 请求去重
-    new EncryptionHandler('casishandsomeboy'), // 加密
-    new CacheManager(new LRUCache({ // 缓存
-      capacity: 50,
-      maxAge: 1000 * 60
-    })),
-    
-    new ConcurrencyManager(8), // 并发控制
-    new AuthManager(), // 认证机制
-    new ErrorHandler() // 仅负责事件转发
-  ]
 });
+
+service
+  .use(new RequestDeduplicator())
+  .use(new EncryptionHandler('casishandsomeboy'))
+  .use(new CacheManager(new LRUCache({ // 缓存
+    capacity: 50,
+    maxAge: 1000 * 60
+  })))
+  .use(new ConcurrencyManager(8))
+  .use(new AuthManager())
+  .use(new ErrorHandler())
 
 function request<T>(url:string,data?:any,config?:AxiosRequestConfig):Promise<T> {
   return service.request.post(url,data,config);
