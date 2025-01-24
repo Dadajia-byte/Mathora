@@ -26,4 +26,3 @@ export class ConcurrencyManager implements RequestModule {
     return response;
   }
 }
-export default ConcurrencyManager;

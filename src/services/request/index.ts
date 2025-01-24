@@ -4,8 +4,8 @@ import {
   AuthManager,
   ConcurrencyManager,
   CacheManager,
-  EncryptionHandler,
-  RequestDeduplicator,
+  EncryptionManager,
+  DeduplicatorManager,
   ErrorHandler
 } from './modules/index';
 import LRUCache from '@/utils/lru';
@@ -79,12 +79,12 @@ const service = new AxiosService({
 });
 
 service
-  .use(new RequestDeduplicator())
-  .use(new EncryptionHandler('casishandsomeboy'))
+  // .use(new DeduplicatorManager())
   .use(new CacheManager(new LRUCache({ // 缓存
     capacity: 50,
     maxAge: 1000 * 60
   })))
+  .use(new EncryptionManager('casishandsomeboy'))
   .use(new ConcurrencyManager(8))
   .use(new AuthManager())
   .use(new ErrorHandler())

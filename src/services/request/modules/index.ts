@@ -2,7 +2,7 @@
 
 export * from './CacheManager';
 export * from './ConcurrencyManager';
-export * from './EncryptionHandler';
-export * from './RequestDeduplicator';
+export * from './EncryptionManager';
+export * from './DeduplicatorManager';
 export * from './AuthManager';
 export * from './ErrorHandler'

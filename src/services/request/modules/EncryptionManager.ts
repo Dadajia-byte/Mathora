@@ -2,7 +2,7 @@ import { RequestModule, AxiosRequestConfig } from "../type";
 import secure from "@/utils/secure";
 
 // 加密模块
-export class EncryptionHandler implements RequestModule {
+export class EncryptionManager implements RequestModule {
   constructor(private key: string) {}
 
   async onRequest(config: AxiosRequestConfig) {
@@ -43,5 +43,3 @@ export class EncryptionHandler implements RequestModule {
     }
   }
 }
-
-export default EncryptionHandler;

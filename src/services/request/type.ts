@@ -9,6 +9,7 @@ export interface EncryptionOptions {
 export interface AxiosRequestConfig extends OriginalAxiosRequestConfig {
   cache?: boolean; // 是否缓存
   encryption?: EncryptionOptions; // 加密配置
+  metaData?: any; // 元数据
 }
 
 export interface AxiosResponse extends OriginalAxiosResponse {

@@ -1,6 +1,6 @@
 import { RequestModule, AxiosRequestConfig, AxiosResponse, BusinessError, ErrorCode } from "../type";
 // 请求去重模块
-export class RequestDeduplicator implements RequestModule {
+export class DeduplicatorManager implements RequestModule {
   private pending = new Map<string, AbortController>();
 
   async onRequest(config: AxiosRequestConfig): Promise<AxiosRequestConfig> {
