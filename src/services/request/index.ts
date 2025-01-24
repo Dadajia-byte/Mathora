@@ -25,14 +25,18 @@ class AxiosService {
     // 请求拦截链
     this.instance.interceptors.request.use(
     async (config: AxiosRequestConfig) => {
-        this.triggerRequsested(config); // 请求时触发请求生命周期函数
-        return config;
+      config.data && (config.metaData = JSON.parse(JSON.stringify(config.data))); // 在请求前备份原始数据，防止后续加密数据后对数据的破坏
+      for (const module of this.modules) {
+        config = await module.onRequest?.(config) || config;
       }
-    );
+      return config;
+    });
     // 响应拦截链
     this.instance.interceptors.response.use(
-    (response: AxiosResponse) => {
-      this.triggerResponsed(response); // 成功时触发响应生命周期函数
+    async (response: AxiosResponse) => {
+      for (const module of this.modules) {
+        response = await module.onResponse?.(response) || response;
+      }
       const { code, message, data } = response.data;
       if (code !== 10000) {
         const error = new BusinessError(code, message, data);
@@ -41,8 +45,7 @@ class AxiosService {
       this.triggerCompleted(response.config); // 成功时触发完成事件生命周期函数
       return response.data;
     },
-    this.errorHandler.bind(this)
-  );
+    this.errorHandler.bind(this));
   }
   get request() {
     return this.instance;
@@ -68,13 +71,12 @@ class AxiosService {
     this.modules.push(module);
     return this;
   }
-  private triggerRequsested(config?: AxiosRequestConfig) {
-    config && this.modules.forEach(m => m.onRequest?.(config));
+  private async triggerRequsested(config?: AxiosRequestConfig) {
   }
   private triggerResponsed(response?: AxiosResponse) {
-    response && this.modules.forEach(m => m.onResponse?.(response));
   }
   private triggerCompleted(config?: AxiosRequestConfig) {
+    // 请求完成后触发所有模块的完成事件，用于清理工作
     config && this.modules.forEach(m => m.onCompleted?.(config));
   }
 }
@@ -94,8 +96,8 @@ service
     maxAge: 1000 * 60
   })))
   .use(new EncryptionManager('casishandsomeboy'))
-  .use(new ConcurrencyManager(8))
-  .use(new AuthManager())
+  // .use(new ConcurrencyManager(8))
+  // .use(new AuthManager())
   .use(new ErrorHandler())
 
 function request<T>(url:string,data?:any,config?:AxiosRequestConfig):Promise<T> {
