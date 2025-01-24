@@ -96,7 +96,7 @@ service
     maxAge: 1000 * 60
   })))
   .use(new EncryptionManager('casishandsomeboy'))
-  // .use(new ConcurrencyManager(8))
+  .use(new ConcurrencyManager(3))
   // .use(new AuthManager())
   .use(new ErrorHandler())
 

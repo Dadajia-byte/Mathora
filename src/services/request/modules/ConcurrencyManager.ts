@@ -1,4 +1,4 @@
-import { RequestModule, AxiosRequestConfig, AxiosResponse } from "../type";
+import { RequestModule, AxiosRequestConfig } from "../type";
 // 并发控制模块
 export class ConcurrencyManager implements RequestModule {
   private queue: (() => void)[] = [];
@@ -20,9 +20,9 @@ export class ConcurrencyManager implements RequestModule {
     });
   }
 
-  onResponse(response: AxiosResponse): AxiosResponse {
+  onCompleted(config:AxiosRequestConfig): AxiosRequestConfig {
     this.activeCount = Math.max(0, this.activeCount - 1); // 高并发场景下，防止并发数为负数
     this.queue.shift()?.();
-    return response;
+    return config;
   }
 }
