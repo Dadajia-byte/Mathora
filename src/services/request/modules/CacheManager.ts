@@ -14,7 +14,7 @@ export class CacheManager implements RequestModule {
     };
     if (data) {
       // 利用抛出错误的方式，终止请求链。
-      return Promise.reject(new BusinessError(ErrorCode.CACHED, '缓存命中', data));
+      return Promise.reject(new BusinessError(ErrorCode.CACHED, '缓存命中', data, config));
     }
     return config;
   }

@@ -45,10 +45,10 @@ export class BusinessError extends Error {
   constructor(
     public code: ErrorCode,
     message: string,
-    public data?: any
+    public data?: any,
+    public config?: AxiosRequestConfig
   ) {
     super(message);
-    this.name = 'BusinessError';
   }
 }
 
@@ -59,4 +59,5 @@ export interface RequestModule {
   onRequest?: (config: AxiosRequestConfig) => Promise<AxiosRequestConfig>;
   onResponse?: (response: AxiosResponse) => AxiosResponse;
   onError?: (error: BusinessError, config?: AxiosRequestConfig) => void;
+  onCompleted?: (config: AxiosRequestConfig) => void;
 }

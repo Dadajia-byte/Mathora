@@ -40,6 +40,7 @@ class AxiosService {
         const error = new BusinessError(code, message, data);
         throw error;
       }
+      this.triggerCompleted(response.config); // 成功时触发完成事件
       return response.data;
     },
     this.errorHandler.bind(this)
@@ -50,6 +51,7 @@ class AxiosService {
   }
   errorHandler (error:Error) {
     let businessError;
+    this.triggerCompleted(error.config); // 错误时也触发完成事件
     if (error?.code) {
       switch (error.code) {
         case ErrorCode.CACHED:
@@ -68,6 +70,10 @@ class AxiosService {
     this.modules.push(module);
     return this;
   }
+  private triggerCompleted(config?: AxiosRequestConfig) {
+    if (!config) return;
+    this.modules.forEach(m => m.onCompleted?.(config));
+  }
 }
 
 
@@ -79,7 +85,7 @@ const service = new AxiosService({
 });
 
 service
-  // .use(new DeduplicatorManager())
+  .use(new DeduplicatorManager())
   .use(new CacheManager(new LRUCache({ // 缓存
     capacity: 50,
     maxAge: 1000 * 60

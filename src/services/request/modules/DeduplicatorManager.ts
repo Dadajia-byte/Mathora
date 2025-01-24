@@ -1,4 +1,4 @@
-import { RequestModule, AxiosRequestConfig, AxiosResponse, BusinessError, ErrorCode } from "../type";
+import { RequestModule, AxiosRequestConfig, BusinessError, ErrorCode } from "../type";
 // 请求去重模块
 export class DeduplicatorManager implements RequestModule {
   private pending = new Map<string, AbortController>();
@@ -14,10 +14,10 @@ export class DeduplicatorManager implements RequestModule {
     return config;
   }
 
-  onResponse(response: AxiosResponse):AxiosResponse {
-    const key = this.generateKey(response.config);
-    this.pending.delete(key);
-    return response;
+  // 新增完成事件处理
+  onCompleted(config: AxiosRequestConfig) {
+    const key = this.generateKey(config);
+    this.pending.delete(key); // 统一清理
   }
 
   /* onError(_error: BusinessError, config?: AxiosRequestConfig) {
