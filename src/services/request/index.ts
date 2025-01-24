@@ -25,22 +25,20 @@ class AxiosService {
     // 请求拦截链
     this.instance.interceptors.request.use(
     async (config: AxiosRequestConfig) => {
-        for (const module of this.modules) {
-          config = await module.onRequest?.(config) || config;
-        }
+        this.triggerRequsested(config); // 请求时触发请求生命周期函数
         return config;
       }
     );
     // 响应拦截链
     this.instance.interceptors.response.use(
     (response: AxiosResponse) => {
-      this.modules.forEach(module => module.onResponse?.(response));
+      this.triggerResponsed(response); // 成功时触发响应生命周期函数
       const { code, message, data } = response.data;
       if (code !== 10000) {
         const error = new BusinessError(code, message, data);
         throw error;
       }
-      this.triggerCompleted(response.config); // 成功时触发完成事件
+      this.triggerCompleted(response.config); // 成功时触发完成事件生命周期函数
       return response.data;
     },
     this.errorHandler.bind(this)
@@ -70,9 +68,14 @@ class AxiosService {
     this.modules.push(module);
     return this;
   }
+  private triggerRequsested(config?: AxiosRequestConfig) {
+    config && this.modules.forEach(m => m.onRequest?.(config));
+  }
+  private triggerResponsed(response?: AxiosResponse) {
+    response && this.modules.forEach(m => m.onResponse?.(response));
+  }
   private triggerCompleted(config?: AxiosRequestConfig) {
-    if (!config) return;
-    this.modules.forEach(m => m.onCompleted?.(config));
+    config && this.modules.forEach(m => m.onCompleted?.(config));
   }
 }
 
