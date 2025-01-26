@@ -1,27 +1,43 @@
-
-import { AxiosRequestConfig, RequestModule,BusinessError,ErrorCode } from '../type';
+import { AxiosRequestConfig, RequestModule, AuthStrategy, RequestServiceError, ErrorCode } from "../type";
 import events from '@/utils/events';
-// 认证模块
 export class AuthManager implements RequestModule {
+  private strategy: AuthStrategy;
+
+  // 允许传入自定义策略
+  constructor(strategy?: AuthStrategy) {
+    this.strategy = strategy ?? this.createDefaultStrategy();
+  }
+
   async onRequest(config: AxiosRequestConfig) {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      events.emit('API:UN_AUTH');
-      return Promise.reject(new BusinessError(ErrorCode.UNAUTHORIZED, '未登录'));
-    }
+    const credential = this.strategy.getCredential();
     
-    config.headers.Authorization = `Bearer ${token}`;
+    if (!credential) {
+      const handled = await this.strategy.onUnauthorized(
+        new RequestServiceError(ErrorCode.UNAUTHORIZED, '未登录')
+      );
+      // 如果策略层未处理，抛出错误终止请求
+      if (!handled) return Promise.reject(error);
+    }
+
+    config.headers.Authorization = `Bearer ${credential}`;
     return config;
   }
 
-  onError(error: BusinessError) {
+  onError(error: RequestServiceError) {
     if (error.code === ErrorCode.UNAUTHORIZED) {
-      events.emit('API:UN_AUTH', error);
-      this.clearAuth();
+      this.strategy.onUnauthorized(error);
     }
   }
 
-  private clearAuth() {
-    localStorage.removeItem('token');
+  // 默认策略实现
+  private createDefaultStrategy(): AuthStrategy {
+    return {
+      getCredential: () => localStorage.getItem('token'),
+      onUnauthorized: (error) => {
+        localStorage.removeItem('token');
+        events.emit('API:UN_AUTH', error);
+        return false; // 不阻止默认错误传播
+      }
+    };
   }
 }

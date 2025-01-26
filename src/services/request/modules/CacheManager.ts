@@ -1,5 +1,5 @@
 import LRUCache from "@/utils/lru";
-import { AxiosRequestConfig, AxiosResponse, BusinessError, ErrorCode, RequestModule } from "../type";
+import { AxiosRequestConfig, AxiosResponse, RequestServiceError, ErrorCode, RequestModule } from "../type";
 // 缓存模块
 export class CacheManager implements RequestModule {
   constructor(private cache: LRUCache) {}
@@ -8,7 +8,7 @@ export class CacheManager implements RequestModule {
     if (!config.cache) return config;
     const key = this.generateKey(config);
     const data = this.cache.get(key);
-    if (data) return Promise.reject(new BusinessError(ErrorCode.CACHED, '缓存命中', data, config));
+    if (data) return Promise.reject(new RequestServiceError(ErrorCode.CACHED, '缓存命中', data, config));
     return config;
   }
 

@@ -1,7 +1,7 @@
-import { RequestModule,BusinessError,ErrorCode } from '../type';
+import { RequestModule,RequestServiceError,ErrorCode } from '../type';
 import events from '@/utils/events';
 export class ErrorHandler implements RequestModule {
-   onError(error: BusinessError) {
+   onError(error: RequestServiceError) {
     const errorMap = {
       [ErrorCode.UNAUTHORIZED]: 'API:UN_AUTH',
       [ErrorCode.VALIDATION_ERROR]: 'API:VALIDATION_ERROR',

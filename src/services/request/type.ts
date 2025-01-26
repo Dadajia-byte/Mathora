@@ -10,6 +10,7 @@ export interface AxiosRequestConfig extends OriginalAxiosRequestConfig {
   cache?: boolean; // 是否缓存
   encryption?: EncryptionOptions; // 加密配置
   metaData?: any; // 元数据
+  closeUrlTransform?: boolean; // 是否需要关闭url转换，一般是不带这个属性的，只有插入了url转换模块才生效
 }
 
 export interface AxiosResponse extends OriginalAxiosResponse {
@@ -41,7 +42,7 @@ export enum ErrorCode {
   CACHED = 10009, // 缓存命中错误码
   DEDUPLICATOR = 10010 // 请求去重错误码
 }
-export class BusinessError extends Error {
+export class RequestServiceError extends Error {
   constructor(
     public code: ErrorCode,
     message: string,
@@ -53,11 +54,25 @@ export class BusinessError extends Error {
 }
 
 // 错误分三类：业务错误(包括缓存命中)、axios自带错误（网络、未知等）
-export type Error = BusinessError | AxiosError 
+export type RequestError = RequestServiceError | AxiosError 
 
 export interface RequestModule {
   onRequest?: (config: AxiosRequestConfig) => Promise<AxiosRequestConfig>;
   onResponse?: (response: AxiosResponse) => AxiosResponse;
-  onError?: (error: BusinessError, config?: AxiosRequestConfig) => void;
+  onError?: (error: RequestServiceError, config?: AxiosRequestConfig) => void;
   onCompleted?: (config: AxiosRequestConfig) => void;
 }
+
+export interface AuthStrategy {
+  // 获取当前凭证
+  getCredential: () => string | null;
+  // 处理未授权错误 (返回true表示已处理，不再触发默认行为)
+  onUnauthorized: (error: RequestServiceError) => boolean | Promise<boolean>;
+  // 凭证刷新逻辑 (可选)
+  refreshCredential?: () => Promise<string>;
+}
+
+// 映射表格式
+export type URLMap = {
+  [key: string]: string | ((params: any) => string);
+};
