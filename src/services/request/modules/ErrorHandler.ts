@@ -4,6 +4,7 @@ export class ErrorHandler implements RequestModule {
    onError(error: RequestServiceError) {
     const errorMap = {
       [ErrorCode.UNAUTHORIZED]: 'API:UN_AUTH',
+      [ErrorCode.UNACCESSED]: 'API:UN_ACCESS',
       [ErrorCode.VALIDATION_ERROR]: 'API:VALIDATION_ERROR',
       [ErrorCode.NETWORK_ERROR]: 'API:NETWORK_ERROR',
       [ErrorCode.BUSINESS_ERROR]: 'API:BUSINESS_ERROR',

@@ -1,5 +1,6 @@
 export const eventName = [
     'API:UN_AUTH', // 未授权（refresh token过期或者没有）
+    'API:UN_ACCESS', // 未资源访问权限（access token过期或者没有）
     'API:VALIDATION_ERROR', // 参数校验错误
     'API:NETWORK_ERROR', // 网络错误
     'API:BUSINESS_ERROR', // 业务逻辑错误

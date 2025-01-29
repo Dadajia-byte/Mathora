@@ -33,6 +33,7 @@ export interface TokenStorage {
 
 export enum ErrorCode {
   UNAUTHORIZED = 10001,
+  UNACCESSED = 10002,
   VALIDATION_ERROR = 10003,
   BUSINESS_ERROR = 10004,
   NETWORK_ERROR = 10005,
@@ -57,20 +58,12 @@ export class RequestServiceError extends Error {
 export type RequestError = RequestServiceError | AxiosError 
 
 export interface RequestModule {
-  onRequest?: (config: AxiosRequestConfig) => Promise<AxiosRequestConfig>;
-  onResponse?: (response: AxiosResponse) => AxiosResponse;
+  onRequest?: (config: AxiosRequestConfig) => AxiosRequestConfig|Promise<AxiosRequestConfig>;
+  onResponse?: (response: AxiosResponse) => AxiosResponse | Promise<AxiosResponse>;
   onError?: (error: RequestServiceError, config?: AxiosRequestConfig) => void;
   onCompleted?: (config: AxiosRequestConfig) => void;
 }
 
-export interface AuthStrategy {
-  // 获取当前凭证
-  getCredential: () => string | null;
-  // 处理未授权错误 (返回true表示已处理，不再触发默认行为)
-  onUnauthorized: (error: RequestServiceError) => boolean | Promise<boolean>;
-  // 凭证刷新逻辑 (可选)
-  refreshCredential?: () => Promise<string>;
-}
 
 // 映射表格式
 export type URLMap = {

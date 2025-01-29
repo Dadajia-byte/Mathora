@@ -22,6 +22,10 @@ export class CacheManager implements RequestModule {
     return response;
   }
 
+  onError() {
+    
+  }
+
   // 生成稳定的请求key
   private generateKey(config: AxiosRequestConfig): string { // 暂时只处理url和data 
     return `${config.url}-${typeof config.metaData ==='string'?config.metaData:JSON.stringify(config.metaData)}`;

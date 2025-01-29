@@ -118,16 +118,14 @@ class AxiosService {
 const service = new AxiosService({
   baseURL: '/api',
   timeout: 10000,
-});
-
-service
-  .use(new TransformURLManager(urlMap)) // 最好还是放路由和去重后面，但是目前有问题
-  .use(new DeduplicatorManager())
-  .use(new CacheManager(new LRUCache({ capacity: 50, maxAge: 1000 * 60 })))
-  .use(new ConcurrencyManager(3))    
-  .use(new EncryptionManager('casishandsomeboy'))
-  // .use(new AuthManager())
-  .use(new ErrorHandler());
+})
+.use(new TransformURLManager(urlMap)) // 最好还是放路由和去重后面，但是目前有问题
+.use(new DeduplicatorManager())
+.use(new CacheManager(new LRUCache({ capacity: 50, maxAge: 1000 * 60 })))
+.use(new ConcurrencyManager(3))    
+.use(new EncryptionManager('casishandsomeboy'))
+// .use(new AuthManager())
+.use(new ErrorHandler());
 
 export default function request<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
   return service.request.post(url, data, config);
