@@ -1,4 +1,3 @@
-import { getAssetsFile } from "@/utils/imgUtils";
 interface HomeProps {
   t: (key: string) => string;
 }
@@ -9,12 +8,11 @@ function Home({ t }: HomeProps) {
       <div className="h-[1080px] w-[1920px] bg-[#020817] flex">
         {/* 左半边 */}
         <div className="flex-col w-1/2 ml-[182px] mt-[86px] ">
-          <div className="flex">
-            <div className="h-[48.25px] w-[27.58px] mr-[25.42px] mb-[64px]">
-              <img src={getAssetsFile("Logo.png")} alt="" />
+          <div className="flex items-center content-center ">
+            <div className="h-[48.25px] w-[27.58px] mr-[25.42px]  bg-no-repeat bg-contain bg-center bg-[url('@/assets/images/Logo.png')]">
+              
             </div>
-            <div className="h-[75px] w-[226px]">
-              <img src={getAssetsFile("Mathora.png")} alt="" />
+            <div className="h-[75px] w-[226px]  bg-no-repeat bg-contain bg-center bg-[url('@/assets/images/Mathora.png')]">
             </div>
           </div>
           <div className="text-[96px] text-white font-[520] font-san mb-[32px] ">
@@ -23,9 +21,7 @@ function Home({ t }: HomeProps) {
           </div>
           <div className="h-[451px] w-[580px] flex-col p-[40px] border-[1px] rounded-[21px] border-[#1F2A3D] ">
             <div className="w-[500px] h-[67px] flex justify-center content-center items-center bg-[#1F2A3D] rounded-[12px] ">
-              <div className="h-[25px] w-[25px] mr-[12px]">
-                <img src={getAssetsFile("GithubIcons.png")} alt="" />
-              </div>
+              <div className="h-[25px] w-[25px] mr-[12px] bg-[url('@/assets/images/GithubIcons.png')] bg-no-repeat bg-cover bg-center"></div>
               <div className="text-[#FFFFFF] text-[24px] ">使用Github继续</div>
             </div>
             <div className="w-[500px] h-[57px] text-[20px] text-[#94A3B8] text-center  flex justify-center content-center items-center">
@@ -37,7 +33,9 @@ function Home({ t }: HomeProps) {
             <div className="w-[500px] h-[67px] flex justify-center content-center items-center bg-[#3C83F6] rounded-[12px] ">
               <div className="text-[#FFFFFF] text-[24px] ">使用邮箱继续</div>
             </div>
-            <div className="text-[#94A3B8] text-[20px] text-center">继续即同意《用户协议》和《隐私协议》</div>
+            <div className="text-[#94A3B8] text-[20px] text-center">
+              继续即同意《用户协议》和《隐私协议》
+            </div>
           </div>
         </div>
 
