@@ -6,7 +6,7 @@ interface HomeProps {
 function Home({ t }: HomeProps) {
   return (
     <div>
-      <div className="h-screen w-screen bg-[#020817] flex">
+      <div className="h-[1080px] w-[1920px] bg-[#020817] flex">
         {/* 左半边 */}
         <div className="flex-col w-1/2 ml-[182px] mt-[86px] ">
           <div className="flex">
@@ -28,7 +28,7 @@ function Home({ t }: HomeProps) {
               </div>
               <div className="text-[#FFFFFF] text-[24px] ">使用Github继续</div>
             </div>
-            <div className="w-[500px] h-[57px] font-[20px] text-[#94A3B8] text-center  flex justify-center content-center items-center">
+            <div className="w-[500px] h-[57px] text-[20px] text-[#94A3B8] text-center  flex justify-center content-center items-center">
               或者
             </div>
             <div className="w-[500px] h-[67px] flex justify-center content-center items-center border-[#1F2A3D] border-[1px] rounded-[12px] mb-[32px] ">
@@ -42,7 +42,7 @@ function Home({ t }: HomeProps) {
         </div>
 
         {/* 右半边 */}
-        <div className="w-1/2 bg-[#0F1729] m-[35px] rounded-[32px]"></div>
+        <div className="w-1/2 bg-[#0F1729] m-[35px] rounded-[32px] mt-[32px]"></div>
       </div>
     </div>
   );
