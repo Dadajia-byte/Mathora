@@ -1,0 +1,18 @@
+{
+    "continueWithGithub": "使用Github继续",
+    "or": "或者",
+    "inputYourEmail": "请输入邮箱",
+    "continueWithEmai": "使用邮箱继续",
+    "agreeContinue": "继续即同意",
+    "userAgreement": "用户协议",
+    "privateAgreement": "隐私协议",
+    "linkClick": "点击发送到以下邮箱的链接以继续",
+    "otherBrowser": "在另外的浏览器中登录？",
+    "verifyCodeInput": "输入验证码",
+    "noCode": "收件箱中没有验证码？",
+    "retryCode": "重新获取验证码",
+    "alreadyHaveCode": "已有验证码？",
+    "inputVerifyCodeContinue": "输入发送到以下邮箱的验证码以继续",
+    "inputVerifyCode": "请输入验证码",
+    "verifyEmail": "验证邮箱"
+}
