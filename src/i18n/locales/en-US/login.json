@@ -1,0 +1,18 @@
+{
+    "continueWithGithub": "Continue with GitHub",
+    "or": "OR",
+    "inputYourEmail": "Enter your personal email",
+    "continueWithEmai": "Continue with Email",
+    "agreeContinue": "By continuing, you agree to our's",
+    "userAgreement": "User Agreement",
+    "privateAgreement": "Privacy Policy",
+    "linkClick": "To continue, click the link sent to",
+    "otherBrowser": "Log in on another browser?",
+    "verifyCodeInput": "Enter verification code",
+    "noCode": "Not seeing the email in your inbox?",
+    "retryCode": "Try sending again",
+    "alreadyHaveCode": "Already have a verification code?",
+    "inputVerifyCodeContinue": "Enter the code generated from the link sent to",
+    "inputVerifyCode": "Enter verification code",
+    "verifyEmail": "Verify Email Address"
+  }
