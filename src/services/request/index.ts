@@ -1,8 +1,8 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios"
-import { AxiosRequestConfig, AxiosServiceOptions, TokenStorage, ErrorType, AppError } from "@/services/request/type"
-import LRUCache from "@/utils/lru"
-import secure from "@/utils/secure";
-import { createError, handleError } from "./errorHandler";
+import { AxiosRequestConfig, AxiosServiceOptions, TokenStorage, ErrorType, /*AppError*/ } from "@/services/request/type"
+// import LRUCache from "@/utils/lru"
+// import secure from "@/utils/secure";
+import { createError, /*handleError*/ } from "./errorHandler";
 
 
 // 默认基于 localStorage 的对双token存/取实现

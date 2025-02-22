@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { LoginForm } from "./loginForm/index.tsx";
 import { VerifyForm } from "./verifyForm/index.tsx";
@@ -7,8 +7,8 @@ interface HomeProps {
   t: (key: string) => string;
 }
 
-function Home({ t }: HomeProps) {
-  const navigate = useNavigate();
+function Home({  }: HomeProps) {
+
 
   const [currentStep, setCurrentStep] = useState(0); // 用于切换步骤
   const goToStep = (step: number) => {

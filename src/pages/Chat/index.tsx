@@ -40,6 +40,8 @@ export function InputForm() {
     //     </pre>
     //   ),
     // })
+    console.log(data);
+    
   }
 
   return (
