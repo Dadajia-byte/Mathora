@@ -3,7 +3,7 @@ import { routerConfig } from './type';
 
 const Home = lazy(() => import('@/pages/Home'));
 const About = lazy(() => import('@/pages/About'));
-
+const Chat = lazy(() => import('@/pages/Chat'));
 export const routesPC:routerConfig = [
   { 
     name: '', // 后期可能写页面title，也需要考虑多语言（考虑再写一个高阶组件？）
@@ -14,6 +14,11 @@ export const routesPC:routerConfig = [
   { 
     path: '/about', 
     component: About, 
+    namespaces: ['test'] 
+  },
+  { 
+    path: '/Chat', 
+    component: Chat, 
     namespaces: ['test'] 
   },
   {

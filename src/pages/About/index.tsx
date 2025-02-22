@@ -15,4 +15,4 @@ function About({ t }: AboutProps) {
   );
 }
 
-export default About;
+// export default About

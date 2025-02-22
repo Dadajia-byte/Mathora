@@ -5,7 +5,7 @@ import { Provider } from "react-redux";
 
 import i18n from "@/i18n";
 import App from "./app";
-import "@/styles/global.scss";
+import "@/styles/component.scss";
 import store from "./store";
 import '@/utils/flexible'
 createRoot(document.getElementById("root")!).render(
